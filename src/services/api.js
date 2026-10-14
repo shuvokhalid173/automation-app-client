@@ -36,6 +36,17 @@ export const authApi = {
   me: () => request('/auth/me'),
 };
 
+export const integrationApi = {
+  getStatus: () => request('/integrations/status'),
+  getEtsyAuthUrl: () => request('/integrations/etsy/auth'),
+  etsyCallback: (code) =>
+    request('/integrations/etsy/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+};
+
+
 export const domainApi = {
   getAll: () => request('/domains'),
   create: (data) => request('/domains', { method: 'POST', body: JSON.stringify(data) }),

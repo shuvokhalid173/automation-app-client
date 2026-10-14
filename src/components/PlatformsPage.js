@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { domainApi } from '../services/api';
+import { domainApi, integrationApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const platformIcons = {
@@ -97,11 +97,29 @@ const styles = {
     borderRadius: '6px',
     fontFamily: 'monospace',
   },
+  platformNameRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    marginBottom: '8px',
+  },
   platformName: {
     fontSize: '20px',
     fontWeight: '700',
     color: '#1e293b',
-    marginBottom: '8px',
+  },
+  connectedPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    backgroundColor: '#dcfce7',
+    color: '#15803d',
+    fontSize: '12px',
+    fontWeight: '700',
+    border: '1px solid #bbf7d0',
   },
   description: {
     fontSize: '14px',
@@ -145,6 +163,8 @@ const styles = {
   },
   btnConnected: {
     backgroundColor: '#10b981',
+    color: '#ffffff',
+    cursor: 'default',
     boxShadow: '0 1px 2px rgba(16, 185, 129, 0.2)',
   },
   loadingContainer: {
@@ -233,20 +253,37 @@ const styles = {
 export default function PlatformsPage() {
   const { isAuthenticated } = useAuth();
   const [platforms, setPlatforms] = useState([]);
+  const [connectedDomainIds, setConnectedDomainIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeModalDomain, setActiveModalDomain] = useState(null);
-  const [connectedMap, setConnectedMap] = useState({});
+  const [connectingId, setConnectingId] = useState(null);
 
   useEffect(() => {
-    async function loadPlatforms() {
+    async function loadPlatformsAndStatus() {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch domains
         const res = await domainApi.getAll();
-        // res.data contains array of domains
         const list = res.data || [];
         setPlatforms(list);
+
+        // If authenticated, fetch integrations status
+        if (isAuthenticated) {
+          try {
+            const statusRes = await integrationApi.getStatus();
+            const ids = Array.isArray(statusRes.data)
+              ? statusRes.data.map(Number)
+              : [];
+            setConnectedDomainIds(ids);
+          } catch (statusErr) {
+            console.error('Failed to load integration status:', statusErr);
+          }
+        } else {
+          setConnectedDomainIds([]);
+        }
       } catch (err) {
         console.error('Failed to load platforms:', err);
         setError(err.message || 'Failed to load platforms');
@@ -255,14 +292,28 @@ export default function PlatformsPage() {
       }
     }
 
-    loadPlatforms();
-  }, []);
+    loadPlatformsAndStatus();
+  }, [isAuthenticated]);
 
-  const handleToggleConnect = (domainId) => {
-    setConnectedMap((prev) => ({
-      ...prev,
-      [domainId]: !prev[domainId],
-    }));
+  const handleConnect = async (domain) => {
+    if (domain.name === 'Etsy') {
+      try {
+        setConnectingId(domain.id);
+        const res = await integrationApi.getEtsyAuthUrl();
+        if (res.data && res.data.url) {
+          window.location.href = res.data.url;
+        } else {
+          throw new Error('No authorization URL received');
+        }
+      } catch (err) {
+        console.error('Failed to initiate Etsy OAuth:', err);
+        alert(err.message || 'Failed to initiate Etsy connection');
+        setConnectingId(null);
+      }
+    } else {
+      // For platforms without automated OAuth flow yet, inform the user
+      alert(`Integration configuration for ${domain.name} is managed in Settings.`);
+    }
   };
 
   const getPlatformVisual = (name = '') => {
@@ -301,7 +352,8 @@ export default function PlatformsPage() {
         <div style={styles.grid}>
           {platforms.map((domain) => {
             const visual = getPlatformVisual(domain.name);
-            const isConnected = !!connectedMap[domain.id];
+            const isConnected = connectedDomainIds.includes(Number(domain.id));
+            const isConnecting = connectingId === domain.id;
 
             return (
               <div
@@ -332,7 +384,15 @@ export default function PlatformsPage() {
                     <span style={styles.urlTag}>{domain.url}</span>
                   </div>
 
-                  <h2 style={styles.platformName}>{domain.name}</h2>
+                  <div style={styles.platformNameRow}>
+                    <h2 style={styles.platformName}>{domain.name}</h2>
+                    {isConnected && (
+                      <span style={styles.connectedPill}>
+                        <span>✓</span> Connected
+                      </span>
+                    )}
+                  </div>
+
                   <p style={styles.description}>
                     {domain.description || 'Automated integration for synchronizing invoices and monthly financial ledgers.'}
                   </p>
@@ -350,16 +410,29 @@ export default function PlatformsPage() {
 
                   {/* Connect Button - Conditionally visible if isAuthenticated === true */}
                   {isAuthenticated && (
-                    <button
-                      type="button"
-                      style={{
-                        ...styles.btnConnect,
-                        ...(isConnected ? styles.btnConnected : {}),
-                      }}
-                      onClick={() => handleToggleConnect(domain.id)}
-                    >
-                      {isConnected ? '✓ Connected' : 'Connect'}
-                    </button>
+                    <>
+                      {isConnected ? (
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.btnConnect,
+                            ...styles.btnConnected,
+                          }}
+                          disabled
+                        >
+                          ✓ Connected
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          style={styles.btnConnect}
+                          disabled={isConnecting}
+                          onClick={() => handleConnect(domain)}
+                        >
+                          {isConnecting ? 'Connecting...' : 'Connect'}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -409,6 +482,15 @@ export default function PlatformsPage() {
             <div style={styles.detailRow}>
               <div style={styles.detailLabel}>Platform ID</div>
               <div style={styles.detailValue}>#{activeModalDomain.id}</div>
+            </div>
+
+            <div style={styles.detailRow}>
+              <div style={styles.detailLabel}>Connection Status</div>
+              <div style={styles.detailValue}>
+                {connectedDomainIds.includes(Number(activeModalDomain.id))
+                  ? 'Connected (Active)'
+                  : 'Not Connected'}
+              </div>
             </div>
 
             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
