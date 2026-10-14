@@ -2,9 +2,15 @@ const API_BASE = process.env.REACT_APP_API_URL || '/api';
 // const API_BASE = 'https://christina-pseudomoral-unpractically.ngrok-free.dev'
 
 async function request(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers,
   });
 
   const data = await response.json();
@@ -15,6 +21,20 @@ async function request(url, options = {}) {
 
   return data;
 }
+
+export const authApi = {
+  login: (email, password) =>
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (username, email, password) =>
+    request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password }),
+    }),
+  me: () => request('/auth/me'),
+};
 
 export const domainApi = {
   getAll: () => request('/domains'),
@@ -54,9 +74,16 @@ export const manualUploadApi = {
     const formData = new FormData();
     formData.append('file', file);
     
+    const headers = {};
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     // Using standard fetch since we need to omit Content-Type for FormData
     const response = await fetch(`${API_BASE}/manual-upload/${destination}`, {
       method: 'POST',
+      headers,
       body: formData,
     });
     
@@ -67,3 +94,4 @@ export const manualUploadApi = {
     return data;
   }
 };
+
