@@ -38,6 +38,20 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
+// Admin-only route wrapper: redirects non-admin users to /platforms
+function AdminRoute({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  if (!user?.isAdmin) {
+    return <Navigate to="/platforms" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -70,12 +84,13 @@ export default function App() {
               }
             />
 
+            {/* Admin-only settings route */}
             <Route
               path="/settings"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <SettingsRouteWrapper />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 

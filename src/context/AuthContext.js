@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authApi } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,12 +15,25 @@ export function AuthProvider({ children }) {
   });
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('token')));
 
-  // Keep state in sync with localStorage
+  // Keep state in sync with localStorage and refresh profile
   useEffect(() => {
     const existingToken = localStorage.getItem('token');
     if (existingToken) {
       setIsAuthenticated(true);
       setToken(existingToken);
+
+      // Verify token & fetch fresh user profile (including updated isAdmin flag)
+      authApi.me()
+        .then((res) => {
+          if (res.data?.user) {
+            setUser(res.data.user);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+          }
+        })
+        .catch((err) => {
+          console.warn('Session expired or invalid token:', err.message);
+          logout();
+        });
     } else {
       setIsAuthenticated(false);
       setToken(null);

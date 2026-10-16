@@ -3,6 +3,7 @@ import FilterSection from './FilterSection';
 import FileTable from './FileTable';
 import FileModal from './FileModal';
 import { fileApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const styles = {
   container: {
@@ -51,6 +52,7 @@ const styles = {
 };
 
 function Dashboard({ onOpenSettings }) {
+  const { user } = useAuth();
   const [files, setFiles] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [filters, setFilters] = useState({});
@@ -102,31 +104,16 @@ function Dashboard({ onOpenSettings }) {
     fetchFiles(pagination.page, filters);
   };
 
+  const userTitle = user?.username ? `${user.username}'s` : "User's";
+
   return (
     <div style={styles.container}>
       <div style={{ ...styles.header, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={styles.title}>Rene's Invoices File System Dashboard</h1>
+          <h1 style={styles.title}>{userTitle} Invoices File System Dashboard</h1>
           <p style={styles.subtitle}>Manage and track your local files</p>
         </div>
-        <button
-          onClick={onOpenSettings}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            background: '#fff',
-            color: '#475569',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          ⚙️ Settings
-        </button>
+
       </div>
 
       <div style={styles.statsBar}>

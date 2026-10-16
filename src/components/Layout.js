@@ -194,16 +194,8 @@ export default function Layout() {
                 <div style={styles.userAvatar}>
                   {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <span>{user?.username || 'Admin'}</span>
+                <span>{user?.username || 'User'}</span>
               </div>
-              <button
-                type="button"
-                style={styles.btnSecondary}
-                onClick={() => navigate('/settings')}
-                title="Application Settings"
-              >
-                Settings
-              </button>
               <button
                 type="button"
                 style={styles.btnLogout}
@@ -255,8 +247,8 @@ export default function Layout() {
             </NavLink>
           )}
 
-          {/* Optional Settings link for convenience when authenticated */}
-          {isAuthenticated && (
+          {/* Link 3: Settings (Only for admin users) */}
+          {isAuthenticated && Boolean(user?.isAdmin) && (
             <NavLink
               to="/settings"
               style={({ isActive }) => ({
