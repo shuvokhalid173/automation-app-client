@@ -6,6 +6,7 @@ import PlatformsPage from './components/PlatformsPage';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import Login from './components/Login';
+import OAuthCallback from './components/OAuthCallback';
 import EtsyOAuthCallback from './components/EtsyOAuthCallback';
 
 function DashboardRouteWrapper() {
@@ -63,8 +64,9 @@ export default function App() {
 
             {/* Public routes */}
             <Route path="/platforms" element={<PlatformsPage />} />
-            <Route path="/oauth/etsy/callback" element={<EtsyOAuthCallback />} />
-            <Route path="/oauth/callback" element={<Navigate to="/oauth/etsy/callback" replace />} />
+            <Route path="/oauth/etsy/callback" element={<OAuthCallback platform="etsy" />} />
+            <Route path="/oauth/paypal/callback" element={<OAuthCallback platform="paypal" />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route
               path="/login"
               element={

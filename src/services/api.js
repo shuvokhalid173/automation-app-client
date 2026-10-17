@@ -39,10 +39,21 @@ export const authApi = {
 export const integrationApi = {
   getStatus: () => request('/integrations/status'),
   getEtsyAuthUrl: () => request('/integrations/etsy/auth'),
-  etsyCallback: (code) =>
+  etsyCallback: (code, state) =>
     request('/integrations/etsy/callback', {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, state }),
+    }),
+  getPaypalAuthUrl: () => request('/integrations/paypal/auth'),
+  paypalCallback: (code, state) =>
+    request('/integrations/paypal/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code, state }),
+    }),
+  connectDirect: ({ domainId, platformName, credentials }) =>
+    request('/integrations/connect-direct', {
+      method: 'POST',
+      body: JSON.stringify({ domainId, platformName, credentials }),
     }),
 };
 
