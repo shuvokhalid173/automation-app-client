@@ -57,6 +57,15 @@ export const integrationApi = {
     }),
 };
 
+export const settingsApi = {
+  get: () => request('/settings'),
+  update: (data) =>
+    request('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
 
 export const domainApi = {
   getAll: () => request('/domains'),

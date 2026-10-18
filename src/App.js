@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import PlatformsPage from './components/PlatformsPage';
 import Dashboard from './components/Dashboard';
-import Settings from './components/Settings';
+import SettingsPage from './components/SettingsPage';
 import Login from './components/Login';
 import OAuthCallback from './components/OAuthCallback';
 import EtsyOAuthCallback from './components/EtsyOAuthCallback';
@@ -15,8 +15,7 @@ function DashboardRouteWrapper() {
 }
 
 function SettingsRouteWrapper() {
-  const navigate = useNavigate();
-  return <Settings onBack={() => navigate('/file-dashboard')} />;
+  return <SettingsPage />;
 }
 
 // Protected route wrapper: redirects unauthenticated users to /login
@@ -86,13 +85,13 @@ export default function App() {
               }
             />
 
-            {/* Admin-only settings route */}
+            {/* Settings route (accessible to authenticated users) */}
             <Route
               path="/settings"
               element={
-                <AdminRoute>
+                <ProtectedRoute>
                   <SettingsRouteWrapper />
-                </AdminRoute>
+                </ProtectedRoute>
               }
             />
 

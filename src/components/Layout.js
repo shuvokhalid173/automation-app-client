@@ -247,8 +247,8 @@ export default function Layout() {
             </NavLink>
           )}
 
-          {/* Link 3: Settings (Only for admin users) */}
-          {isAuthenticated && Boolean(user?.isAdmin) && (
+          {/* Link 3: Settings (Accessible to all authenticated users) */}
+          {isAuthenticated && (
             <NavLink
               to="/settings"
               style={({ isActive }) => ({

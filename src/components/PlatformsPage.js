@@ -432,20 +432,152 @@ const keyframes = `
 `;
 
 /**
- * Modal for platforms that connect with direct credentials (e.g. Lexware API key).
- * `onSubmit(apiKey)` must return a Promise; a rejection's message is shown inline.
+ * Per-platform configuration for direct-credential connections.
+ * Each entry defines the modal copy, the fields to collect, and the theme accent.
+ */
+const DIRECT_CONNECT_CONFIG = {
+  Lexware: {
+    accent: '#047857',
+    accentRing: 'rgba(4, 120, 87, 0.15)',
+    instructionBg: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%)',
+    instructionBorder: '#a7f3d0',
+    subtitle: 'Lexoffice requires a Personal API Key to connect.',
+    instructionHeading: 'How to get your API key',
+    steps: [
+      <>Log into your Lexoffice account.</>,
+      <>
+        <a
+          href={LEXOFFICE_API_SETTINGS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#047857', fontWeight: 700, textDecoration: 'underline' }}
+        >
+          Click this link
+        </a>{' '}
+        to go directly to your Public API settings.
+      </>,
+      <>
+        Click <strong>"Create API Key"</strong>, copy the long token, and paste it below.
+      </>,
+    ],
+    fields: [
+      {
+        name: 'apiKey',
+        label: 'Lexoffice API Key',
+        type: 'secret',
+        placeholder: 'Paste your API key here',
+        trim: true,
+      },
+    ],
+  },
+  GMX: {
+    accent: '#1e3a8a',
+    accentRing: 'rgba(30, 58, 138, 0.15)',
+    instructionBg: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
+    instructionBorder: '#bfdbfe',
+    subtitle: 'GMX requires an App Password to allow IMAP access.',
+    instructionHeading: 'How to enable IMAP access',
+    steps: [
+      <>Log into your GMX account and go to <strong>Settings</strong>.</>,
+      <>Enable <strong>POP3/IMAP</strong> access.</>,
+      <>
+        Generate a new <strong>App Password</strong> (do not use your main account password).
+      </>,
+    ],
+    fields: [
+      {
+        name: 'email',
+        label: 'GMX Email Address',
+        type: 'email',
+        placeholder: 'you@gmx.de',
+        trim: true,
+        autoComplete: 'username',
+      },
+      {
+        name: 'password',
+        label: 'App Password',
+        type: 'secret',
+        placeholder: 'Paste your GMX App Password',
+        trim: false, // passwords are sent verbatim
+        autoComplete: 'new-password',
+      },
+    ],
+  },
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Themed text / secret input used inside the ConnectionModal.
+ */
+function CredentialField({ field, value, onChange, disabled, hasError, accent, accentRing, autoFocus }) {
+  const [reveal, setReveal] = useState(false);
+  const isSecret = field.type === 'secret';
+  const inputId = `connect-field-${field.name}`;
+  const baseBorder = hasError ? '#f87171' : '#cbd5e1';
+
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <label htmlFor={inputId} style={styles.fieldLabel}>
+        {field.label}
+      </label>
+      <div style={styles.inputWrap}>
+        <input
+          id={inputId}
+          name={field.name}
+          type={isSecret ? (reveal ? 'text' : 'password') : field.type}
+          value={value}
+          onChange={(e) => onChange(field.name, e.target.value)}
+          placeholder={field.placeholder}
+          autoComplete={field.autoComplete || 'off'}
+          spellCheck={false}
+          autoFocus={autoFocus}
+          disabled={disabled}
+          style={{
+            ...styles.input,
+            fontFamily: isSecret ? 'monospace' : 'inherit',
+            paddingRight: isSecret ? '72px' : '14px',
+            borderColor: baseBorder,
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = `0 0 0 3px ${accentRing}`;
+            if (!hasError) e.currentTarget.style.borderColor = accent;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.borderColor = baseBorder;
+          }}
+        />
+        {isSecret && (
+          <button
+            type="button"
+            style={styles.inputToggle}
+            onClick={() => setReveal((r) => !r)}
+            tabIndex={-1}
+          >
+            {reveal ? 'Hide' : 'Show'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Modal for platforms that connect with direct credentials (Lexware API key, GMX IMAP login).
+ * `onSubmit(credentials)` must return a Promise; a rejection's message is shown inline.
  */
 function ConnectionModal({ isOpen, onClose, domain, onSubmit, visual }) {
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
+  const [values, setValues] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Reset form whenever the modal is (re)opened
+  const platformConfig = domain ? DIRECT_CONNECT_CONFIG[domain.name] : null;
+
+  // Reset form whenever the modal is (re)opened or the platform changes
   useEffect(() => {
     if (isOpen) {
-      setApiKey('');
-      setShowKey(false);
+      setValues({});
       setSubmitting(false);
       setError(null);
     }
@@ -463,19 +595,41 @@ function ConnectionModal({ isOpen, onClose, domain, onSubmit, visual }) {
 
   if (!isOpen || !domain) return null;
 
-  const isLexware = domain.name === 'Lexware';
+  const handleFieldChange = (name, value) => {
+    setValues((prev) => ({ ...prev, [name]: value }));
+    if (error) setError(null);
+  };
+
+  const buildCredentials = () =>
+    platformConfig.fields.reduce((acc, field) => {
+      const raw = values[field.name] || '';
+      acc[field.name] = field.trim ? raw.trim() : raw;
+      return acc;
+    }, {});
+
+  const isComplete =
+    platformConfig &&
+    platformConfig.fields.every((f) => (f.trim ? (values[f.name] || '').trim() : values[f.name] || ''));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const value = apiKey.trim();
-    if (!value) {
-      setError('Please paste your API key.');
+    const credentials = buildCredentials();
+
+    const missing = platformConfig.fields.find((f) => !credentials[f.name]);
+    if (missing) {
+      setError(`Please enter your ${missing.label}.`);
       return;
     }
+    const emailField = platformConfig.fields.find((f) => f.type === 'email');
+    if (emailField && !EMAIL_PATTERN.test(credentials[emailField.name])) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
-      await onSubmit(value);
+      await onSubmit(credentials);
     } catch (err) {
       setError(err.message || 'Failed to connect. Please try again.');
       setSubmitting(false);
@@ -502,11 +656,7 @@ function ConnectionModal({ isOpen, onClose, domain, onSubmit, visual }) {
               <h2 id="connect-modal-title" style={styles.connectTitle}>
                 Connect {domain.name}
               </h2>
-              {isLexware && (
-                <p style={styles.connectSubtitle}>
-                  Lexoffice requires a Personal API Key to connect.
-                </p>
-              )}
+              {platformConfig && <p style={styles.connectSubtitle}>{platformConfig.subtitle}</p>}
             </div>
           </div>
           <button
@@ -520,77 +670,43 @@ function ConnectionModal({ isOpen, onClose, domain, onSubmit, visual }) {
           </button>
         </div>
 
-        {isLexware ? (
+        {platformConfig ? (
           <form onSubmit={handleSubmit} noValidate>
-            <div style={styles.instructionBox}>
-              <div style={styles.instructionHeading}>How to get your API key</div>
+            <div
+              style={{
+                ...styles.instructionBox,
+                background: platformConfig.instructionBg,
+                borderColor: platformConfig.instructionBorder,
+              }}
+            >
+              <div style={{ ...styles.instructionHeading, color: platformConfig.accent }}>
+                {platformConfig.instructionHeading}
+              </div>
               <ol style={styles.stepList}>
-                <li style={styles.stepItem}>
-                  <span style={styles.stepNumber}>1</span>
-                  <span>Log into your Lexoffice account.</span>
-                </li>
-                <li style={styles.stepItem}>
-                  <span style={styles.stepNumber}>2</span>
-                  <span>
-                    <a
-                      href={LEXOFFICE_API_SETTINGS_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={styles.stepLink}
-                    >
-                      Click this link
-                    </a>{' '}
-                    to go directly to your Public API settings.
-                  </span>
-                </li>
-                <li style={styles.stepItem}>
-                  <span style={styles.stepNumber}>3</span>
-                  <span>
-                    Click <strong>"Create API Key"</strong>, copy the long token, and paste it below.
-                  </span>
-                </li>
+                {platformConfig.steps.map((step, idx) => (
+                  <li key={idx} style={styles.stepItem}>
+                    <span style={{ ...styles.stepNumber, backgroundColor: platformConfig.accent }}>
+                      {idx + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
               </ol>
             </div>
 
-            <label htmlFor="lexoffice-api-key" style={styles.fieldLabel}>
-              Lexoffice API Key
-            </label>
-            <div style={styles.inputWrap}>
-              <input
-                id="lexoffice-api-key"
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  if (error) setError(null);
-                }}
-                placeholder="Paste your API key here"
-                autoComplete="off"
-                spellCheck={false}
-                autoFocus
+            {platformConfig.fields.map((field, idx) => (
+              <CredentialField
+                key={field.name}
+                field={field}
+                value={values[field.name] || ''}
+                onChange={handleFieldChange}
                 disabled={submitting}
-                style={{
-                  ...styles.input,
-                  borderColor: error ? '#f87171' : '#cbd5e1',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(4, 120, 87, 0.15)';
-                  if (!error) e.currentTarget.style.borderColor = '#047857';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.boxShadow = 'none';
-                  if (!error) e.currentTarget.style.borderColor = '#cbd5e1';
-                }}
+                hasError={Boolean(error)}
+                accent={platformConfig.accent}
+                accentRing={platformConfig.accentRing}
+                autoFocus={idx === 0}
               />
-              <button
-                type="button"
-                style={styles.inputToggle}
-                onClick={() => setShowKey((s) => !s)}
-                tabIndex={-1}
-              >
-                {showKey ? 'Hide' : 'Show'}
-              </button>
-            </div>
+            ))}
 
             {error && (
               <div style={styles.inlineError} role="alert">
@@ -610,14 +726,14 @@ function ConnectionModal({ isOpen, onClose, domain, onSubmit, visual }) {
               </button>
               <button
                 type="submit"
-                id="lexoffice-connect-submit"
+                id={`${domain.name.toLowerCase()}-connect-submit`}
                 style={{
                   ...styles.btnConnect,
-                  backgroundColor: '#047857',
-                  opacity: submitting || !apiKey.trim() ? 0.7 : 1,
-                  cursor: submitting || !apiKey.trim() ? 'not-allowed' : 'pointer',
+                  backgroundColor: platformConfig.accent,
+                  opacity: submitting || !isComplete ? 0.7 : 1,
+                  cursor: submitting || !isComplete ? 'not-allowed' : 'pointer',
                 }}
-                disabled={submitting || !apiKey.trim()}
+                disabled={submitting || !isComplete}
               >
                 {submitting && <span style={styles.btnSpinner} />}
                 {submitting ? 'Validating…' : 'Connect'}
@@ -699,13 +815,14 @@ export default function PlatformsPage() {
 
   const closeConnectModal = useCallback(() => setConnectModalDomain(null), []);
 
-  // Called by ConnectionModal; throwing here surfaces the message inside the modal
-  const handleDirectConnectSubmit = async (apiKey) => {
+  // Called by ConnectionModal; throwing here surfaces the message inside the modal.
+  // `credentials` is { apiKey } for Lexware and { email, password } for GMX.
+  const handleDirectConnectSubmit = async (credentials) => {
     const domain = connectModalDomain;
     await integrationApi.connectDirect({
       domainId: domain.id,
       platformName: domain.name,
-      credentials: { apiKey },
+      credentials,
     });
     setConnectModalDomain(null);
     setToast(`${domain.name} connected successfully`);
@@ -713,7 +830,7 @@ export default function PlatformsPage() {
   };
 
   const handleConnect = async (domain) => {
-    if (domain.name === 'Lexware') {
+    if (DIRECT_CONNECT_CONFIG[domain.name]) {
       setConnectModalDomain(domain);
       return;
     }
