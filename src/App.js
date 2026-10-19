@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import PlatformsPage from './components/PlatformsPage';
 import Dashboard from './components/Dashboard';
 import SettingsPage from './components/SettingsPage';
+import AdminPage from './components/AdminPage';
 import Login from './components/Login';
 import OAuthCallback from './components/OAuthCallback';
 import EtsyOAuthCallback from './components/EtsyOAuthCallback';
@@ -29,16 +30,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-// Public-only route wrapper: redirects already logged-in users away from /login
-function PublicOnlyRoute({ children }) {
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) {
-    return <Navigate to="/platforms" replace />;
-  }
-  return children;
-}
-
-// Admin-only route wrapper: redirects non-admin users to /platforms
+// Admin-only route wrapper: accessible ONLY by authenticated system owner (ADMIN_EMAIL)
 function AdminRoute({ children }) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
@@ -47,6 +39,15 @@ function AdminRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   if (!user?.isAdmin) {
+    return <Navigate to="/platforms" replace />;
+  }
+  return children;
+}
+
+// Public-only route wrapper: redirects already logged-in users away from /login
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
     return <Navigate to="/platforms" replace />;
   }
   return children;
@@ -92,6 +93,32 @@ export default function App() {
                 <ProtectedRoute>
                   <SettingsRouteWrapper />
                 </ProtectedRoute>
+              }
+            />
+
+            {/* Admin routes (strictly guarded for system owner / ADMIN_EMAIL) */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/domains"
+              element={
+                <AdminRoute>
+                  <AdminPage activeTab="domains" />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/mailboxes"
+              element={
+                <AdminRoute>
+                  <AdminPage activeTab="mailboxes" />
+                </AdminRoute>
               }
             />
 

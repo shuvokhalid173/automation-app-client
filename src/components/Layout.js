@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const styles = {
@@ -170,8 +170,11 @@ const styles = {
 };
 
 export default function Layout() {
-  const { isAuthenticated, user, login, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const handleLogout = () => {
     logout();
@@ -185,6 +188,24 @@ export default function Layout() {
         <div style={styles.logoContainer}>
           <div style={styles.logoBadge}>A</div>
           <span style={styles.logoText}>AIAAS</span>
+          {isAdminRoute && (
+            <span
+              style={{
+                marginLeft: '8px',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontSize: '11px',
+                fontWeight: '800',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                border: '1px solid #fecaca',
+              }}
+            >
+              Admin Mode
+            </span>
+          )}
         </div>
 
         <div style={styles.navRight}>
@@ -195,6 +216,20 @@ export default function Layout() {
                   {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <span>{user?.username || 'User'}</span>
+                {user?.isAdmin && (
+                  <span
+                    style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      backgroundColor: '#fee2e2',
+                      color: '#dc2626',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                    }}
+                  >
+                    Admin
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -219,46 +254,148 @@ export default function Layout() {
       {/* Main Container with Sidebar + Content */}
       <div style={styles.bodyLayout}>
         <aside style={styles.sidebar}>
-          <div style={styles.sidebarLabel}>Navigation</div>
+          {isAdminRoute ? (
+            /* Admin Sidebar: strictly contains the two items (Domains & Mailboxes) */
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '4px 10px 14px 10px',
+                  borderBottom: '1px solid #f1f5f9',
+                  marginBottom: '10px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: '#fee2e2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                  }}
+                >
+                  🛡️
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
+                    Admin Panel
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: '700' }}>
+                    System Owner
+                  </div>
+                </div>
+              </div>
 
-          {/* Link 1: Platforms (Always visible) */}
-          <NavLink
-            to="/platforms"
-            style={({ isActive }) => ({
-              ...styles.navLink,
-              ...(isActive ? styles.navLinkActive : {}),
-            })}
-          >
-            <span style={styles.navIcon}>⚡</span>
-            <span>Platforms</span>
-          </NavLink>
+              <div style={styles.sidebarLabel}>Admin Navigation</div>
 
-          {/* Link 2: File Dashboard (Only when authenticated) */}
-          {isAuthenticated && (
-            <NavLink
-              to="/file-dashboard"
-              style={({ isActive }) => ({
-                ...styles.navLink,
-                ...(isActive ? styles.navLinkActive : {}),
-              })}
-            >
-              <span style={styles.navIcon}>📁</span>
-              <span>File Dashboard</span>
-            </NavLink>
-          )}
+              {/* Item 1: Domains */}
+              <NavLink
+                to="/admin/domains"
+                style={({ isActive }) => ({
+                  ...styles.navLink,
+                  ...(isActive || location.pathname === '/admin' ? styles.navLinkActive : {}),
+                })}
+              >
+                <span style={styles.navIcon}>🌐</span>
+                <span>Domains</span>
+              </NavLink>
 
-          {/* Link 3: Settings (Accessible to all authenticated users) */}
-          {isAuthenticated && (
-            <NavLink
-              to="/settings"
-              style={({ isActive }) => ({
-                ...styles.navLink,
-                ...(isActive ? styles.navLinkActive : {}),
-              })}
-            >
-              <span style={styles.navIcon}>⚙️</span>
-              <span>Settings</span>
-            </NavLink>
+              {/* Item 2: Mailboxes */}
+              <NavLink
+                to="/admin/mailboxes"
+                style={({ isActive }) => ({
+                  ...styles.navLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                <span style={styles.navIcon}>📬</span>
+                <span>Mailboxes</span>
+              </NavLink>
+
+              {/* Return to App */}
+              <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+                <NavLink
+                  to="/platforms"
+                  style={{
+                    ...styles.navLink,
+                    color: '#64748b',
+                    backgroundColor: '#f8fafc',
+                  }}
+                >
+                  <span style={styles.navIcon}>←</span>
+                  <span>Exit to Main App</span>
+                </NavLink>
+              </div>
+            </>
+          ) : (
+            /* Regular User Navigation Sidebar */
+            <>
+              <div style={styles.sidebarLabel}>Navigation</div>
+
+              {/* Link 1: Platforms (Always visible) */}
+              <NavLink
+                to="/platforms"
+                style={({ isActive }) => ({
+                  ...styles.navLink,
+                  ...(isActive ? styles.navLinkActive : {}),
+                })}
+              >
+                <span style={styles.navIcon}>⚡</span>
+                <span>Platforms</span>
+              </NavLink>
+
+              {/* Link 2: File Dashboard (Only when authenticated) */}
+              {isAuthenticated && (
+                <NavLink
+                  to="/file-dashboard"
+                  style={({ isActive }) => ({
+                    ...styles.navLink,
+                    ...(isActive ? styles.navLinkActive : {}),
+                  })}
+                >
+                  <span style={styles.navIcon}>📁</span>
+                  <span>File Dashboard</span>
+                </NavLink>
+              )}
+
+              {/* Link 3: Settings (Accessible to all authenticated users) */}
+              {isAuthenticated && (
+                <NavLink
+                  to="/settings"
+                  style={({ isActive }) => ({
+                    ...styles.navLink,
+                    ...(isActive ? styles.navLinkActive : {}),
+                  })}
+                >
+                  <span style={styles.navIcon}>⚙️</span>
+                  <span>Settings</span>
+                </NavLink>
+              )}
+
+              {/* Admin Panel Entry Link (Visible only to System Owner / Admin) */}
+              {isAuthenticated && user?.isAdmin && (
+                <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={styles.sidebarLabel}>Administration</div>
+                  <NavLink
+                    to="/admin"
+                    style={({ isActive }) => ({
+                      ...styles.navLink,
+                      color: '#dc2626',
+                      backgroundColor: isActive ? '#fef2f2' : 'transparent',
+                      fontWeight: isActive ? '700' : '600',
+                    })}
+                  >
+                    <span style={styles.navIcon}>🛡️</span>
+                    <span>Admin Panel</span>
+                  </NavLink>
+                </div>
+              )}
+            </>
           )}
         </aside>
 

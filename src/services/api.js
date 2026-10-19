@@ -66,6 +66,18 @@ export const settingsApi = {
     }),
 };
 
+export const adminApi = {
+  verify: () => request('/admin/verify'),
+  getDomains: () => request('/admin/domains'),
+  createDomain: (data) => request('/admin/domains', { method: 'POST', body: JSON.stringify(data) }),
+  updateDomain: (id, data) => request(`/admin/domains/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteDomain: (id) => request(`/admin/domains/${id}`, { method: 'DELETE' }),
+  getMailboxes: (domainId) => request(domainId ? `/admin/mailboxes?domain_id=${domainId}` : '/admin/mailboxes'),
+  createMailbox: (data) => request('/admin/mailboxes', { method: 'POST', body: JSON.stringify(data) }),
+  updateMailbox: (id, data) => request(`/admin/mailboxes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteMailbox: (id) => request(`/admin/mailboxes/${id}`, { method: 'DELETE' }),
+};
+
 
 export const domainApi = {
   getAll: () => request('/domains'),

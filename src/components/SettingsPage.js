@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { settingsApi, domainApi, mailboxApi } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { settingsApi } from '../services/api';
 
 const timezones = [
   { value: 'Europe/Berlin', label: 'Europe/Berlin (CET/CEST - UTC+1/+2)' },
@@ -71,6 +70,7 @@ const styles = {
   tabBtnActive: {
     color: '#2563eb',
     borderBottom: '2px solid #2563eb',
+    fontWeight: '700',
   },
   card: {
     backgroundColor: '#ffffff',
@@ -113,7 +113,7 @@ const styles = {
   toggleLabel: {
     fontSize: '15px',
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#0f172a',
   },
   toggleDesc: {
     fontSize: '13px',
@@ -122,14 +122,16 @@ const styles = {
   switch: {
     position: 'relative',
     display: 'inline-block',
-    width: '52px',
-    height: '28px',
+    width: '48px',
+    height: '26px',
     flexShrink: 0,
+    cursor: 'pointer',
   },
   switchInput: {
     opacity: 0,
     width: 0,
     height: 0,
+    position: 'absolute',
   },
   slider: {
     position: 'absolute',
@@ -143,22 +145,22 @@ const styles = {
     borderRadius: '34px',
   },
   sliderActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#2563eb',
   },
   sliderCircle: {
     position: 'absolute',
     content: '""',
     height: '20px',
     width: '20px',
-    left: '4px',
-    bottom: '4px',
+    left: '3px',
+    bottom: '3px',
     backgroundColor: 'white',
     transition: '0.2s',
     borderRadius: '50%',
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
   },
   sliderCircleActive: {
-    transform: 'translateX(24px)',
+    transform: 'translateX(22px)',
   },
   grid: {
     display: 'grid',
@@ -166,163 +168,95 @@ const styles = {
     gap: '20px',
     marginBottom: '24px',
   },
-  formGroup: {
+  fieldGroup: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
   },
   label: {
-    fontSize: '14px',
-    fontWeight: '600',
+    fontSize: '13px',
+    fontWeight: '700',
     color: '#334155',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
   input: {
     padding: '10px 14px',
     borderRadius: '8px',
     border: '1px solid #cbd5e1',
     fontSize: '14px',
-    color: '#0f172a',
     backgroundColor: '#ffffff',
+    color: '#0f172a',
     outline: 'none',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
+    transition: 'border-color 0.15s ease',
   },
   helperText: {
     fontSize: '12px',
     color: '#64748b',
-  },
-  summaryBox: {
-    padding: '16px 20px',
-    borderRadius: '12px',
-    backgroundColor: '#eff6ff',
-    border: '1px solid #bfdbfe',
-    color: '#1e40af',
-    fontSize: '14px',
-    lineHeight: '1.5',
-    marginBottom: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  summaryIcon: {
-    fontSize: '20px',
-    flexShrink: 0,
+    marginTop: '2px',
   },
   btnSave: {
-    padding: '12px 24px',
+    padding: '12px 28px',
     borderRadius: '8px',
     backgroundColor: '#2563eb',
     color: '#ffffff',
     fontSize: '14px',
-    fontWeight: '600',
+    fontWeight: '700',
     border: 'none',
     cursor: 'pointer',
-    transition: 'background-color 0.15s ease',
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
+    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
+    transition: 'all 0.15s ease',
+  },
+  btnSaveDisabled: {
+    backgroundColor: '#94a3b8',
+    cursor: 'not-allowed',
+    boxShadow: 'none',
   },
   toast: {
-    padding: '12px 18px',
-    borderRadius: '8px',
-    marginBottom: '20px',
+    padding: '14px 20px',
+    borderRadius: '10px',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: '20px',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
   },
   toastSuccess: {
-    backgroundColor: '#dcfce7',
-    border: '1px solid #86efac',
-    color: '#15803d',
+    backgroundColor: '#ecfdf5',
+    border: '1px solid #a7f3d0',
+    color: '#065f46',
   },
   toastError: {
     backgroundColor: '#fee2e2',
     border: '1px solid #fca5a5',
     color: '#b91c1c',
   },
-  // Table styles for Admin tabs
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '14px',
-  },
-  th: {
-    padding: '12px 16px',
-    textAlign: 'left',
-    fontWeight: '600',
-    color: '#475569',
-    fontSize: '12px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  td: {
-    padding: '12px 16px',
-    borderBottom: '1px solid #f1f5f9',
-    color: '#334155',
-  },
-  btnPrimary: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: 'none',
-    background: '#2563eb',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  btnSecondary: {
-    padding: '8px 16px',
-    borderRadius: '8px',
+  summaryCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: '12px',
     border: '1px solid #e2e8f0',
-    background: '#fff',
-    color: '#64748b',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  btnDanger: {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    border: 'none',
-    background: '#ef4444',
-    color: '#fff',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  modal: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(15,23,42,0.5)',
+    padding: '18px 20px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
+    gap: '14px',
+    marginTop: '20px',
   },
-  modalContent: {
-    background: '#fff',
-    padding: '24px',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '500px',
+  summaryIcon: {
+    fontSize: '22px',
   },
-  modalActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    marginTop: '24px',
+  summaryText: {
+    fontSize: '14px',
+    color: '#334155',
+    lineHeight: '1.5',
+    margin: 0,
   },
 };
 
 export default function SettingsPage() {
-  const { user } = useAuth();
-  const isAdmin = Boolean(user?.isAdmin);
-
   const [activeTab, setActiveTab] = useState('schedule');
 
   // Automation Schedule Form State
@@ -337,13 +271,7 @@ export default function SettingsPage() {
   const [dayOfWeek, setDayOfWeek] = useState(1);
   const [executionTime, setExecutionTime] = useState('02:00');
 
-  // Admin Data State (Domains & Mailboxes)
-  const [domains, setDomains] = useState([]);
-  const [mailboxes, setMailboxes] = useState([]);
-  const [domainModal, setDomainModal] = useState({ open: false, data: null });
-  const [mailboxModal, setMailboxModal] = useState({ open: false, data: null });
-
-  // 1. Fetch user automation settings on mount
+  // Fetch user automation settings on mount
   useEffect(() => {
     async function loadSettings() {
       try {
@@ -356,7 +284,6 @@ export default function SettingsPage() {
           setFrequency((s.frequency || 'monthly').toLowerCase());
           setDayOfMonth(s.dayOfMonth !== undefined ? Number(s.dayOfMonth) : 1);
           setDayOfWeek(s.dayOfWeek !== undefined ? Number(s.dayOfWeek) : 1);
-          // Normalize time string e.g. "02:00:00" -> "02:00"
           const rawTime = s.executionTime || '02:00';
           setExecutionTime(rawTime.slice(0, 5));
         }
@@ -370,26 +297,6 @@ export default function SettingsPage() {
 
     loadSettings();
   }, []);
-
-  // 2. Fetch admin data if admin
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAdminData();
-    }
-  }, [isAdmin]);
-
-  const fetchAdminData = async () => {
-    try {
-      const [dRes, mRes] = await Promise.all([
-        domainApi.getAll(),
-        mailboxApi.getAll(),
-      ]);
-      setDomains(dRes.data || []);
-      setMailboxes(mRes.data || []);
-    } catch (err) {
-      console.error('Failed to load admin settings data:', err);
-    }
-  };
 
   // Handle Save Automation Schedule
   const handleSaveSchedule = async (e) => {
@@ -438,72 +345,9 @@ export default function SettingsPage() {
     }
     if (frequency === 'weekly') {
       const dayLabel = daysOfWeek.find((d) => d.value === Number(dayOfWeek))?.label || 'Monday';
-      return `Automation workers will execute Weekly on ${dayLabel}s at ${executionTime} (${tzLabel}).`;
+      return `Automation workers will execute Weekly on ${dayLabel} at ${executionTime} (${tzLabel}).`;
     }
-    // Monthly
-    const suffix = dayOfMonth === 1 ? 'st' : dayOfMonth === 2 ? 'nd' : dayOfMonth === 3 ? 'rd' : 'th';
-    return `Automation workers will execute Monthly on the ${dayOfMonth}${suffix} of every month at ${executionTime} (${tzLabel}).`;
-  };
-
-  // Admin Domain Handlers
-  const handleSaveDomain = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const data = { name: fd.get('name'), url: fd.get('url') };
-    try {
-      if (domainModal.data) {
-        await domainApi.update(domainModal.data.id, data);
-      } else {
-        await domainApi.create(data);
-      }
-      setDomainModal({ open: false, data: null });
-      fetchAdminData();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleDeleteDomain = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this domain?')) return;
-    try {
-      await domainApi.delete(id);
-      fetchAdminData();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // Admin Mailbox Handlers
-  const handleSaveMailbox = async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const data = {
-      name: fd.get('name'),
-      email: fd.get('email'),
-      domain_id: fd.get('domain_id'),
-      is_active: fd.get('is_active') === 'on',
-    };
-    try {
-      if (mailboxModal.data) {
-        await mailboxApi.update(mailboxModal.data.id, data);
-      } else {
-        await mailboxApi.create(data);
-      }
-      setMailboxModal({ open: false, data: null });
-      fetchAdminData();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleDeleteMailbox = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this mailbox?')) return;
-    try {
-      await mailboxApi.delete(id);
-      fetchAdminData();
-    } catch (err) {
-      alert(err.message);
-    }
+    return `Automation workers will execute Monthly on day ${dayOfMonth} at ${executionTime} (${tzLabel}).`;
   };
 
   return (
@@ -515,37 +359,27 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      {/* Tab Navigation (Shown for Admins to switch between Schedule, Domains, and Mailboxes) */}
-      {isAdmin && (
-        <div style={styles.tabBar}>
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === 'schedule' ? styles.tabBtnActive : {}) }}
-            onClick={() => setActiveTab('schedule')}
-          >
-            <span>⏱️</span>
-            <span>Automation Schedule</span>
-          </button>
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === 'domains' ? styles.tabBtnActive : {}) }}
-            onClick={() => setActiveTab('domains')}
-          >
-            <span>🌐</span>
-            <span>Domains</span>
-          </button>
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === 'mailboxes' ? styles.tabBtnActive : {}) }}
-            onClick={() => setActiveTab('mailboxes')}
-          >
-            <span>📬</span>
-            <span>Mailboxes</span>
-          </button>
-        </div>
-      )}
+      {/* Tab Navigation: Automation Schedule & Source & Destination Settings */}
+      <div style={styles.tabBar}>
+        <button
+          type="button"
+          style={{ ...styles.tabBtn, ...(activeTab === 'schedule' ? styles.tabBtnActive : {}) }}
+          onClick={() => setActiveTab('schedule')}
+        >
+          <span>⏱️</span>
+          <span>Automation Schedule</span>
+        </button>
+        <button
+          type="button"
+          style={{ ...styles.tabBtn, ...(activeTab === 'source-destination' ? styles.tabBtnActive : {}) }}
+          onClick={() => setActiveTab('source-destination')}
+        >
+          <span>🔀</span>
+          <span>Source & Destination Settings</span>
+        </button>
+      </div>
 
-      {/* Tab 1: Automation Scheduling System (Available to all users) */}
+      {/* Tab 1: Automation Scheduling System */}
       {activeTab === 'schedule' && (
         <div>
           {scheduleMessage && (
@@ -579,7 +413,7 @@ export default function SettingsPage() {
                   <div style={styles.toggleInfo}>
                     <span style={styles.toggleLabel}>Enable Automated Sync</span>
                     <span style={styles.toggleDesc}>
-                      Master switch to activate or pause all background worker runs.
+                      Main switch to activate or pause all background worker runs.
                     </span>
                   </div>
                   <label style={styles.switch}>
@@ -608,12 +442,9 @@ export default function SettingsPage() {
                 {/* Section 2: Scheduling Parameters */}
                 <div style={styles.grid}>
                   {/* Timezone */}
-                  <div style={styles.formGroup}>
-                    <label htmlFor="setting-timezone" style={styles.label}>
-                      Timezone
-                    </label>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Timezone</label>
                     <select
-                      id="setting-timezone"
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
                       style={styles.input}
@@ -624,16 +455,13 @@ export default function SettingsPage() {
                         </option>
                       ))}
                     </select>
-                    <span style={styles.helperText}>Used to interpret your worker execution time.</span>
+                    <span style={styles.helperText}>Used to calculate scheduled cron runtime.</span>
                   </div>
 
                   {/* Frequency */}
-                  <div style={styles.formGroup}>
-                    <label htmlFor="setting-frequency" style={styles.label}>
-                      Frequency
-                    </label>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Frequency</label>
                     <select
-                      id="setting-frequency"
                       value={frequency}
                       onChange={(e) => setFrequency(e.target.value)}
                       style={styles.input}
@@ -642,86 +470,77 @@ export default function SettingsPage() {
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
                     </select>
-                    <span style={styles.helperText}>How often automation tasks run.</span>
+                    <span style={styles.helperText}>How often background automation runs.</span>
                   </div>
 
-                  {/* Dynamic Input 1: Day of Month (Monthly only) */}
+                  {/* Day of Month (Monthly only) */}
                   {frequency === 'monthly' && (
-                    <div style={styles.formGroup}>
-                      <label htmlFor="setting-day-of-month" style={styles.label}>
-                        Day of the Month (1-31)
-                      </label>
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Day of the Month</label>
                       <input
-                        id="setting-day-of-month"
                         type="number"
                         min="1"
                         max="31"
                         value={dayOfMonth}
-                        onChange={(e) => setDayOfMonth(Math.max(1, Math.min(31, Number(e.target.value))))}
+                        onChange={(e) => setDayOfMonth(Math.max(1, Math.min(31, parseInt(e.target.value, 10) || 1)))}
                         style={styles.input}
                         required
                       />
-                      <span style={styles.helperText}>Calendar day for the monthly automation cycle.</span>
+                      <span style={styles.helperText}>Executes on this calendar day each month (1-31).</span>
                     </div>
                   )}
 
-                  {/* Dynamic Input 2: Day of Week (Weekly only) */}
+                  {/* Day of Week (Weekly only) */}
                   {frequency === 'weekly' && (
-                    <div style={styles.formGroup}>
-                      <label htmlFor="setting-day-of-week" style={styles.label}>
-                        Day of the Week
-                      </label>
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Day of the Week</label>
                       <select
-                        id="setting-day-of-week"
                         value={dayOfWeek}
                         onChange={(e) => setDayOfWeek(Number(e.target.value))}
                         style={styles.input}
                       >
-                        {daysOfWeek.map((day) => (
-                          <option key={day.value} value={day.value}>
-                            {day.label}
+                        {daysOfWeek.map((d) => (
+                          <option key={d.value} value={d.value}>
+                            {d.label}
                           </option>
                         ))}
                       </select>
-                      <span style={styles.helperText}>Day of each week to trigger sync.</span>
+                      <span style={styles.helperText}>Executes once every week on this day.</span>
                     </div>
                   )}
 
                   {/* Execution Time */}
-                  <div style={styles.formGroup}>
-                    <label htmlFor="setting-execution-time" style={styles.label}>
-                      Execution Time
-                    </label>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Execution Time</label>
                     <input
-                      id="setting-execution-time"
                       type="time"
                       value={executionTime}
                       onChange={(e) => setExecutionTime(e.target.value)}
                       style={styles.input}
                       required
                     />
-                    <span style={styles.helperText}>24-hour time format (HH:MM).</span>
+                    <span style={styles.helperText}>Scheduled start time in 24-hour format (HH:MM).</span>
                   </div>
                 </div>
 
                 {/* Summary Box */}
-                <div style={styles.summaryBox}>
-                  <span style={styles.summaryIcon}>{isActive ? '📅' : '⏸️'}</span>
-                  <span>{getSummaryText()}</span>
+                <div style={styles.summaryCard}>
+                  <span style={styles.summaryIcon}>{isActive ? '🚀' : '⏸️'}</span>
+                  <p style={styles.summaryText}>{getSummaryText()}</p>
                 </div>
 
-                {/* Save Button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {/* Submit Action */}
+                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     type="submit"
+                    disabled={savingSchedule}
                     style={{
                       ...styles.btnSave,
-                      opacity: savingSchedule ? 0.7 : 1,
-                      cursor: savingSchedule ? 'not-allowed' : 'pointer',
+                      ...(savingSchedule ? styles.btnSaveDisabled : {}),
                     }}
-                    disabled={savingSchedule}
                   >
-                    {savingSchedule ? 'Saving Preferences...' : 'Save Preferences'}
+                    <span>💾</span>
+                    <span>{savingSchedule ? 'Saving Preferences...' : 'Save Automation Schedule'}</span>
                   </button>
                 </div>
               </div>
@@ -730,241 +549,71 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Tab 2: Domains (Admin Only) */}
-      {isAdmin && activeTab === 'domains' && (
+      {/* Tab 2: Source & Destination Settings (Placeholder / Coming Soon) */}
+      {activeTab === 'source-destination' && (
         <div style={styles.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={styles.cardTitle}>Managed Domains</h2>
-            <button
-              type="button"
-              style={styles.btnPrimary}
-              onClick={() => setDomainModal({ open: true, data: null })}
+          <div style={styles.cardHeader}>
+            <h2 style={styles.cardTitle}>Source & Destination Settings</h2>
+            <p style={styles.cardSubtitle}>
+              Configure storage source pathways, destination cloud endpoints, and pipeline sync rules.
+            </p>
+          </div>
+
+          <div
+            style={{
+              padding: '64px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '2px dashed #cbd5e1',
+              marginTop: '12px',
+            }}
+          >
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
+                marginBottom: '16px',
+                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.15)',
+              }}
             >
-              + Add Domain
-            </button>
-          </div>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>URL</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {domains.map((d) => (
-                <tr key={d.id}>
-                  <td style={styles.td}>#{d.id}</td>
-                  <td style={{ ...styles.td, fontWeight: '600' }}>{d.name}</td>
-                  <td style={styles.td}>{d.url}</td>
-                  <td style={{ ...styles.td, textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      style={{ ...styles.btnSecondary, marginRight: '8px', padding: '6px 12px' }}
-                      onClick={() => setDomainModal({ open: true, data: d })}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      style={{ ...styles.btnDanger, padding: '6px 12px' }}
-                      onClick={() => handleDeleteDomain(d.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              🔀
+            </div>
 
-      {/* Tab 3: Mailboxes (Admin Only) */}
-      {isAdmin && activeTab === 'mailboxes' && (
-        <div style={styles.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={styles.cardTitle}>Configured Mailboxes</h2>
-            <button
-              type="button"
-              style={styles.btnPrimary}
-              onClick={() => setMailboxModal({ open: true, data: null })}
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                backgroundColor: '#dbeafe',
+                color: '#1d4ed8',
+                fontSize: '12px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '14px',
+              }}
             >
-              + Add Mailbox
-            </button>
-          </div>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Email</th>
-                <th style={styles.th}>Domain</th>
-                <th style={styles.th}>Status</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mailboxes.map((m) => {
-                const dom = domains.find((d) => d.id === m.domain_id);
-                return (
-                  <tr key={m.id}>
-                    <td style={styles.td}>#{m.id}</td>
-                    <td style={{ ...styles.td, fontWeight: '600' }}>{m.name}</td>
-                    <td style={styles.td}>{m.email}</td>
-                    <td style={styles.td}>{dom ? dom.name : m.domain_id}</td>
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor: m.is_active ? '#dcfce7' : '#fee2e2',
-                          color: m.is_active ? '#15803d' : '#b91c1c',
-                        }}
-                      >
-                        {m.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td style={{ ...styles.td, textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        style={{ ...styles.btnSecondary, marginRight: '8px', padding: '6px 12px' }}
-                        onClick={() => setMailboxModal({ open: true, data: m })}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        style={{ ...styles.btnDanger, padding: '6px 12px' }}
-                        onClick={() => handleDeleteMailbox(m.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+              Coming Soon...
+            </span>
 
-      {/* Modal: Add/Edit Domain */}
-      {domainModal.open && (
-        <div style={styles.modal} onClick={() => setDomainModal({ open: false, data: null })}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '700' }}>
-              {domainModal.data ? 'Edit Domain' : 'Add Domain'}
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 8px 0' }}>
+              Source & Destination Pipelines Under Construction
             </h3>
-            <form onSubmit={handleSaveDomain}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={styles.label}>Name</label>
-                <input
-                  name="name"
-                  defaultValue={domainModal.data?.name || ''}
-                  style={styles.input}
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={styles.label}>URL</label>
-                <input
-                  name="url"
-                  defaultValue={domainModal.data?.url || ''}
-                  style={styles.input}
-                  required
-                />
-              </div>
-              <div style={styles.modalActions}>
-                <button
-                  type="button"
-                  style={styles.btnSecondary}
-                  onClick={() => setDomainModal({ open: false, data: null })}
-                >
-                  Cancel
-                </button>
-                <button type="submit" style={styles.btnPrimary}>
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Modal: Add/Edit Mailbox */}
-      {mailboxModal.open && (
-        <div style={styles.modal} onClick={() => setMailboxModal({ open: false, data: null })}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '700' }}>
-              {mailboxModal.data ? 'Edit Mailbox' : 'Add Mailbox'}
-            </h3>
-            <form onSubmit={handleSaveMailbox}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={styles.label}>Name</label>
-                <input
-                  name="name"
-                  defaultValue={mailboxModal.data?.name || ''}
-                  style={styles.input}
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={styles.label}>Email</label>
-                <input
-                  name="email"
-                  type="email"
-                  defaultValue={mailboxModal.data?.email || ''}
-                  style={styles.input}
-                  required
-                />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={styles.label}>Domain</label>
-                <select
-                  name="domain_id"
-                  defaultValue={mailboxModal.data?.domain_id || ''}
-                  style={styles.input}
-                  required
-                >
-                  <option value="" disabled>
-                    Select Domain
-                  </option>
-                  {domains.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="checkbox"
-                  id="mb_is_active"
-                  name="is_active"
-                  defaultChecked={mailboxModal.data ? mailboxModal.data.is_active : true}
-                />
-                <label htmlFor="mb_is_active" style={{ fontSize: '14px', color: '#334155' }}>
-                  Is Active
-                </label>
-              </div>
-              <div style={styles.modalActions}>
-                <button
-                  type="button"
-                  style={styles.btnSecondary}
-                  onClick={() => setMailboxModal({ open: false, data: null })}
-                >
-                  Cancel
-                </button>
-                <button type="submit" style={styles.btnPrimary}>
-                  Save
-                </button>
-              </div>
-            </form>
+            <p style={{ maxWidth: '480px', color: '#64748b', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
+              Automated source-to-destination routing rules and storage mappings are coming in an upcoming release. Your schedule settings configured in the Automation Schedule tab will apply to all connected destinations once active.
+            </p>
           </div>
         </div>
       )}
