@@ -1,4 +1,6 @@
-const API_BASE = process.env.REACT_APP_API_URL || '/api';
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api');
 // const API_BASE = 'https://christina-pseudomoral-unpractically.ngrok-free.dev'
 
 async function request(url, options = {}) {
@@ -116,6 +118,15 @@ export const fileApi = {
       method: 'POST',
       body: JSON.stringify({ destination }),
     }),
+};
+
+export const jobsApi = {
+  triggerSync: (platform = 'all') =>
+    request('/jobs/trigger', {
+      method: 'POST',
+      body: JSON.stringify({ platform }),
+    }),
+  getJobs: () => request('/jobs'),
 };
 
 export const manualUploadApi = {
