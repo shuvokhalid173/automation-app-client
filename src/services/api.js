@@ -64,6 +64,12 @@ export const settingsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  getRouting: () => request('/settings/routing'),
+  updateRouting: (data) =>
+    request('/settings/routing', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 export const adminApi = {
