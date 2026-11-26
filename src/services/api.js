@@ -129,6 +129,48 @@ export const jobsApi = {
   getJobs: () => request('/jobs'),
 };
 
+export const deviceApi = {
+  list: () => request('/devices'),
+  revoke: (id) => request(`/devices/${id}`, { method: 'DELETE' }),
+  downloadWindowsDriver: async (deviceName = '') => {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/devices/download/windows`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ deviceName }),
+    });
+
+    if (!response.ok) {
+      let msg = 'Failed to download Windows driver';
+      try {
+        const errData = await response.json();
+        msg = errData.message || msg;
+      } catch {
+        // ignore JSON parse error
+      }
+      throw new Error(msg);
+    }
+
+    const deviceUuid = response.headers.get('X-Device-UUID') || '';
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'aiaas-windows-driver.bat');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { deviceUuid };
+  },
+};
+
 export const manualUploadApi = {
   uploadFile: async (destination, file) => {
     const formData = new FormData();

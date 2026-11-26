@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { settingsApi } from '../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { settingsApi, deviceApi } from '../services/api';
 
 const timezones = [
   { value: 'Europe/Berlin', label: 'Europe/Berlin (CET/CEST - UTC+1/+2)' },
@@ -298,7 +298,20 @@ const styles = {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('schedule');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('tab');
+    return ['schedule', 'source-destination', 'devices'].includes(t) ? t : 'schedule';
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const t = params.get('tab');
+    if (t && ['schedule', 'source-destination', 'devices'].includes(t)) {
+      setActiveTab(t);
+    }
+  }, [location.search]);
 
   // Automation Schedule Form State
   const [loadingSchedule, setLoadingSchedule] = useState(true);
@@ -318,6 +331,24 @@ export default function SettingsPage() {
   const [loadingRouting, setLoadingRouting] = useState(true);
   const [savingRouting, setSavingRouting] = useState(false);
   const [routingMessage, setRoutingMessage] = useState(null);
+
+  // Desktop Devices State
+  const [devices, setDevices] = useState([]);
+  const [loadingDevices, setLoadingDevices] = useState(true);
+  const [downloadingDriver, setDownloadingDriver] = useState(false);
+  const [deviceNameInput, setDeviceNameInput] = useState('');
+  const [deviceMessage, setDeviceMessage] = useState(null);
+
+  const loadDevices = useCallback(async () => {
+    try {
+      const dRes = await deviceApi.list();
+      setDevices(Array.isArray(dRes.data) ? dRes.data : []);
+    } catch (err) {
+      console.error('Failed to load devices:', err);
+    } finally {
+      setLoadingDevices(false);
+    }
+  }, []);
 
   // Fetch settings on mount
   useEffect(() => {
@@ -362,7 +393,50 @@ export default function SettingsPage() {
     }
 
     loadAllSettings();
-  }, []);
+    loadDevices();
+  }, [loadDevices]);
+
+  // Poll devices every 5s when any device is waiting for initial connection
+  useEffect(() => {
+    const hasPending = devices.some((d) => d.status === 'pending');
+    if (!hasPending) return undefined;
+    const timer = setInterval(() => {
+      loadDevices();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [devices, loadDevices]);
+
+  const handleDownloadWindowsDriver = async (e) => {
+    e.preventDefault();
+    setDownloadingDriver(true);
+    setDeviceMessage(null);
+    try {
+      const { deviceUuid } = await deviceApi.downloadWindowsDriver(deviceNameInput.trim());
+      setDeviceNameInput('');
+      setDeviceMessage({
+        type: 'success',
+        text: `Windows driver downloaded (Device ID: ${deviceUuid.slice(0, 8)}...). Double-click aiaas-windows-driver.bat on your Windows PC to complete pairing.`,
+      });
+      await loadDevices();
+    } catch (err) {
+      setDeviceMessage({ type: 'error', text: err.message || 'Failed to download Windows driver.' });
+    } finally {
+      setDownloadingDriver(false);
+    }
+  };
+
+  const handleRevokeDevice = async (device) => {
+    if (!window.confirm(`Revoke access for "${device.device_name || device.hostname || device.device_uuid}"?`)) {
+      return;
+    }
+    try {
+      await deviceApi.revoke(device.id);
+      setDeviceMessage({ type: 'success', text: 'Device revoked successfully.' });
+      await loadDevices();
+    } catch (err) {
+      setDeviceMessage({ type: 'error', text: err.message || 'Failed to revoke device.' });
+    }
+  };
 
   // Handle Save Automation Schedule
   const handleSaveSchedule = async (e) => {
@@ -506,6 +580,14 @@ export default function SettingsPage() {
         >
           <span>🔀</span>
           <span>Source & Destination Settings</span>
+        </button>
+        <button
+          type="button"
+          style={{ ...styles.tabBtn, ...(activeTab === 'devices' ? styles.tabBtnActive : {}) }}
+          onClick={() => setActiveTab('devices')}
+        >
+          <span>💻</span>
+          <span>Desktop Devices</span>
         </button>
       </div>
 
@@ -1025,6 +1107,189 @@ export default function SettingsPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Tab 3: Desktop Devices & Windows Driver Download */}
+      {activeTab === 'devices' && (
+        <div>
+          {deviceMessage && (
+            <div
+              style={{
+                ...styles.toast,
+                ...(deviceMessage.type === 'success' ? styles.toastSuccess : styles.toastError),
+              }}
+            >
+              <span>{deviceMessage.type === 'success' ? '✓' : '⚠️'}</span>
+              <span>{deviceMessage.text}</span>
+            </div>
+          )}
+
+          {/* Card 1: Download Windows Driver */}
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <h2 style={styles.cardTitle}>Download Windows Desktop Driver (Test MVP)</h2>
+              <p style={styles.cardSubtitle}>
+                Each download generates a device-bound script tied to your account. On first run, it locks to that Windows machine&apos;s hardware ID and sends a desktop notification.
+              </p>
+            </div>
+
+            <form onSubmit={handleDownloadWindowsDriver} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px' }}>
+              <div style={{ ...styles.fieldGroup, flex: '1 1 280px' }}>
+                <label style={styles.label}>Device Label (Optional)</label>
+                <input
+                  type="text"
+                  value={deviceNameInput}
+                  onChange={(e) => setDeviceNameInput(e.target.value)}
+                  placeholder="e.g. Office Windows PC"
+                  maxLength={100}
+                  style={styles.input}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={downloadingDriver}
+                style={{
+                  ...styles.btnSave,
+                  ...(downloadingDriver ? styles.btnSaveDisabled : {}),
+                }}
+              >
+                <span>⬇️</span>
+                <span>{downloadingDriver ? 'Preparing Driver...' : 'Download Windows Driver (.bat)'}</span>
+              </button>
+            </form>
+
+            <div style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              fontSize: '13px',
+              color: '#334155',
+              lineHeight: '1.6',
+            }}>
+              <strong>How it works:</strong>
+              <ol style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                <li>Download <code>aiaas-windows-driver.bat</code> while logged in (creates a <strong>Pending</strong> device token).</li>
+                <li>Double-click the file on your target Windows PC to connect and bind its machine fingerprint.</li>
+                <li>You will see a native Windows desktop notification and the status below will turn <strong>Connected</strong>. Sharing this file to a different Windows PC is blocked automatically.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* Card 2: Registered Devices List */}
+          <div style={styles.card}>
+            <div style={{ ...styles.cardHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={styles.cardTitle}>Authenticated Devices</h2>
+                <p style={styles.cardSubtitle}>
+                  Monitor connected machines bound to your account or revoke lost/shared devices immediately.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={loadDevices}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#ffffff',
+                  color: '#334155',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
+
+            {loadingDevices ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>Loading devices...</div>
+            ) : devices.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                No desktop devices downloaded or registered yet.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>Device</th>
+                      <th style={{ textAlign: 'left', padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>Hostname / OS</th>
+                      <th style={{ textAlign: 'left', padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>Last Seen</th>
+                      <th style={{ textAlign: 'right', padding: '12px', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {devices.map((d) => {
+                      const badgeStyle =
+                        d.status === 'connected'
+                          ? { bg: '#dcfce7', color: '#15803d' }
+                          : d.status === 'revoked'
+                          ? { bg: '#fee2e2', color: '#b91c1c' }
+                          : { bg: '#fef3c7', color: '#92400e' };
+                      return (
+                        <tr key={d.id}>
+                          <td style={{ padding: '14px 12px', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ fontWeight: '700', color: '#0f172a' }}>{d.device_name || 'Windows Device'}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{d.device_uuid}</div>
+                          </td>
+                          <td style={{ padding: '14px 12px', borderBottom: '1px solid #f1f5f9', color: '#334155' }}>
+                            <div>{d.hostname || 'Awaiting first run'}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>
+                              {d.os_platform}{d.os_version ? ` · ${d.os_version}` : ''}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 12px', borderBottom: '1px solid #f1f5f9' }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              textTransform: 'uppercase',
+                              backgroundColor: badgeStyle.bg,
+                              color: badgeStyle.color,
+                            }}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 12px', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: '#475569' }}>
+                            {d.last_seen_at
+                              ? new Date(d.last_seen_at).toLocaleString()
+                              : d.connected_at
+                              ? new Date(d.connected_at).toLocaleString()
+                              : 'Not connected yet'}
+                          </td>
+                          <td style={{ padding: '14px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              disabled={d.status === 'revoked'}
+                              onClick={() => handleRevokeDevice(d)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor: d.status === 'revoked' ? '#e2e8f0' : '#ef4444',
+                                color: d.status === 'revoked' ? '#94a3b8' : '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                cursor: d.status === 'revoked' ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {d.status === 'revoked' ? 'Revoked' : 'Revoke'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

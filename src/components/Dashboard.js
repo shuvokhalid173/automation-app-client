@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FilterSection from './FilterSection';
 import FileTable from './FileTable';
 import FileModal from './FileModal';
@@ -152,6 +153,7 @@ function formatJobTime(dt) {
 
 function Dashboard({ onOpenSettings }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [filters, setFilters] = useState({});
@@ -267,24 +269,47 @@ function Dashboard({ onOpenSettings }) {
           <p style={styles.subtitle}>Manage and track your synchronized financial documents</p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleTriggerSync}
-          disabled={isBusy}
-          style={{
-            ...styles.syncBtn,
-            ...(isBusy ? styles.syncBtnDisabled : {}),
-          }}
-        >
-          <span>{activeJob ? '⏳' : '🔄'}</span>
-          <span>
-            {triggering
-              ? 'Queuing Sync...'
-              : activeJob
-              ? `Sync ${activeJob.status === 'running' ? 'Running' : 'Pending'}...`
-              : 'Run Sync Now'}
-          </span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/settings?tab=devices')}
+            style={{
+              padding: '11px 18px',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              color: '#334155',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span>💻</span>
+            <span>Windows Driver</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleTriggerSync}
+            disabled={isBusy}
+            style={{
+              ...styles.syncBtn,
+              ...(isBusy ? styles.syncBtnDisabled : {}),
+            }}
+          >
+            <span>{activeJob ? '⏳' : '🔄'}</span>
+            <span>
+              {triggering
+                ? 'Queuing Sync...'
+                : activeJob
+                ? `Sync ${activeJob.status === 'running' ? 'Running' : 'Pending'}...`
+                : 'Run Sync Now'}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Recent Sync Activity Strip */}
